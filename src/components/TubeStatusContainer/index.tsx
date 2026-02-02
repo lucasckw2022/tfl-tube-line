@@ -47,15 +47,13 @@ function TubeStatusContainer(): JSX.Element {
   useEffect(() => {
     const fetchTubeStatus = async () => {
       try {
-        const appKey = process.env.REACT_APP_TFL_APP_KEY;
+        const appKey = import.meta.env.VITE_TFL_APP_KEY;
         if (!appKey) {
-          throw new Error(
-            "REACT_APP_TFL_APP_ID and REACT_APP_TFL_APP_KEY are required"
-          );
+          throw new Error("VITE_TFL_APP_KEY is required");
         }
 
         const response = await fetch(
-          `http://api.tfl.gov.uk/Line/Mode/Tube/Status?app_key=${appKey}`
+          `https://api.tfl.gov.uk/Line/Mode/Tube/Status?app_key=${appKey}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch tube status");

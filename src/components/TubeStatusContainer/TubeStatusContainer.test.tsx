@@ -1,27 +1,24 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import "@testing-library/jest-dom";
 import TubeStatusContainer from "./index";
 import { mockTubeDataArray } from "../../utils/mockData";
 
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe("TubeStatusContainer Component", () => {
-  const originalEnv = process.env.REACT_APP_TFL_APP_KEY;
-
   beforeEach(() => {
-    (fetch as jest.Mock).mockClear();
-    // Set a default app key for most tests
-    process.env.REACT_APP_TFL_APP_KEY = "test-app-key";
+    vi.mocked(fetch).mockClear();
+    vi.stubEnv("VITE_TFL_APP_KEY", "test-app-key");
   });
 
   afterEach(() => {
-    // Restore original environment variable after each test
-    process.env.REACT_APP_TFL_APP_KEY = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   it("renders loading state initially", () => {
-    (fetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
 
     render(<TubeStatusContainer />);
 
@@ -29,10 +26,10 @@ describe("TubeStatusContainer Component", () => {
   });
 
   it("renders title and tube statuses when data is loaded", async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => mockTubeDataArray,
-    });
+    } as Response);
 
     render(<TubeStatusContainer />);
 
@@ -47,7 +44,7 @@ describe("TubeStatusContainer Component", () => {
   });
 
   it("renders error message when API call fails", async () => {
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error("Network error"));
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("Network error"));
 
     render(<TubeStatusContainer />);
 
@@ -57,10 +54,10 @@ describe("TubeStatusContainer Component", () => {
   });
 
   it("renders error message when API returns non-ok response", async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,
       status: 500,
-    });
+    } as Response);
 
     render(<TubeStatusContainer />);
 
@@ -72,10 +69,10 @@ describe("TubeStatusContainer Component", () => {
   });
 
   it("calls the correct API endpoint with app key", async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => mockTubeDataArray,
-    });
+    } as Response);
 
     render(<TubeStatusContainer />);
 
@@ -87,10 +84,10 @@ describe("TubeStatusContainer Component", () => {
   });
 
   it("handles empty tube data array", async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
-    });
+    } as Response);
 
     render(<TubeStatusContainer />);
 
@@ -98,34 +95,31 @@ describe("TubeStatusContainer Component", () => {
       expect(screen.getByText("London Tube Status")).toBeInTheDocument();
     });
 
-    // Should not render any tube status components
     expect(screen.queryByText(/Bakerloo|Central/)).not.toBeInTheDocument();
   });
 
   it("renders error message when app key is missing", async () => {
-    delete process.env.REACT_APP_TFL_APP_KEY;
-
-    render(<TubeStatusContainer />);
+    vi.stubEnv("VITE_TFL_APP_KEY", undefined);
+    vi.resetModules();
+    const { default: TubeStatusContainerNoKey } = await import("./index");
+    render(<TubeStatusContainerNoKey />);
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          "Error: REACT_APP_TFL_APP_ID and REACT_APP_TFL_APP_KEY are required"
-        )
+        screen.getByText("Error: VITE_TFL_APP_KEY is required")
       ).toBeInTheDocument();
     });
   });
 
   it("renders error message when app key is empty string", async () => {
-    process.env.REACT_APP_TFL_APP_KEY = "";
-
-    render(<TubeStatusContainer />);
+    vi.stubEnv("VITE_TFL_APP_KEY", "");
+    vi.resetModules();
+    const { default: TubeStatusContainerEmptyKey } = await import("./index");
+    render(<TubeStatusContainerEmptyKey />);
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          "Error: REACT_APP_TFL_APP_ID and REACT_APP_TFL_APP_KEY are required"
-        )
+        screen.getByText("Error: VITE_TFL_APP_KEY is required")
       ).toBeInTheDocument();
     });
   });
